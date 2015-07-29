@@ -1,0 +1,10 @@
+{
+  "page": {
+    "port": "3000",
+    "labels": ["page"]
+  },
+  "chat": {
+    "port": "3001",
+    "labels": ["chat"]
+  }
+}
