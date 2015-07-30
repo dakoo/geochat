@@ -1,4 +1,34 @@
 $(function() {
+    getLocation();
+    var position = {};
+    function getLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(geosuccess, geoerror);
+        } else {
+            window.alert("Geolocation is not supported by this browser.");
+        }
+    }
+    function geosuccess(pos) {
+        position = pos;
+    }
+    function geoerror(error) {
+        switch(error.code) {
+            case error.PERMISSION_DENIED:
+                window.alert("User denied the request for Geolocation.");
+                break;
+            case error.POSITION_UNAVAILABLE:
+                window.alert("Location information is unavailable.");
+                break;
+            case error.TIMEOUT:
+                window.alert("The request to get user location timed out.");
+                break;
+            case error.UNKNOWN_ERROR:
+                window.alert("An unknown error occurred.");
+                break;
+        }
+    }
+    var radius = 1000;
+
     var FADE_TIME = 150; // ms
     var TYPING_TIMER_LENGTH = 400; // ms
     var COLORS = [
@@ -17,7 +47,7 @@ $(function() {
     var $chatPage = $('.chat.page'); // The chatroom page
 
     // Prompt for setting a username
-    var username;
+    var username = '';
     var connected = false;
     var typing = false;
     var lastTypingTime;
@@ -28,28 +58,39 @@ $(function() {
     function addParticipantsMessage (data) {
         var message = '';
         if (data.numUsers === 1) {
-            message += "there's 1 participant";
+            message += "there's 1 participant ";
         } else {
-            message += "there are " + data.numUsers + " participants";
+            message += "there are " + data.numUsers + " participants ";
         }
         log(message);
+    }
+
+    function fromLogintoChat(){
+        $loginPage.fadeOut();
+        $chatPage.show();
+        $loginPage.off('click');
+        $currentInput = $inputMessage.focus();
     }
 
     // Sets the client's username
     function setUsername () {
         username = cleanInput($usernameInput.val().trim());
 
+        // If position is not valid
+        if(position === {}){
+            $(".login_error").html("Sorry, we cannot find your position yet.");
+            return;
+        }
+        var location = {};
+        location.longitude = position.coords.longitude;
+        location.latitude = position.coords.latitude;
         // If the username is valid
         if (username) {
-            $loginPage.fadeOut();
-            $chatPage.show();
-            $loginPage.off('click');
-            $currentInput = $inputMessage.focus();
-
-            // Tell the server your username
-            socket.emit('add user', username);
+            // Tell the server your username and location
+            socket.emit('join', username, location, radius);
         }
     }
+
 
     // Sends a chat message
     function sendMessage () {
@@ -197,7 +238,7 @@ $(function() {
         }
         // When the client hits ENTER on their keyboard
         if (event.which === 13) {
-            if (username) {
+            if (username !=="") {
                 sendMessage();
                 socket.emit('stop typing');
                 typing = false;
@@ -228,12 +269,21 @@ $(function() {
     // Whenever the server emits 'login', log the login message
     socket.on('login', function (data) {
         connected = true;
+        //from login.page to chat.page
+        fromLogintoChat();
+
         // Display the welcome message
-        var message = "Welcome to Socket.IO Chat ? ";
+        var message = "";
         log(message, {
             prepend: true
         });
         addParticipantsMessage(data);
+    });
+
+    socket.on('login failed', function () {
+        $(".login_error").html("Retry with another nickname.");
+        $(".login_error").fadeOut(3000);
+        //TODO reload
     });
 
     // Whenever the server emits 'new message', update the chat body

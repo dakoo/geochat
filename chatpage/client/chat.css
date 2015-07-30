@@ -85,6 +85,12 @@ ul {
     font-weight: 100;
 }
 
+.login.page .login_error {
+    font-size: 200%;
+    color: #ffc520;
+    font-weight: 100;
+}
+
 /* Chat page */
 
 .chat.page {

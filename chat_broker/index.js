@@ -3,14 +3,14 @@ var socketio = require('socket.io')
 
 exports.register = function (server, options, next) {
     var io = socketio(server.select(options).listener);
-    io.sockets.on('connection', function(socket) {
-        socket.on('new message', function (msg) {
+    io.sockets.on('connection', function(socket){
+        socket.on('new message', function(msg){
             handle.message(socket, msg);
         });
-        socket.on('add user', function (username) {
-            handle.adduser(socket, username);
+        socket.on('join', function(username, position, radius){
+            handle.join(socket, username, position, radius);
         });
-        socket.on('typing', function () {
+        socket.on('typing', function(){
             handle.typing(socket);
         });
         socket.on('stop typing', function () {
