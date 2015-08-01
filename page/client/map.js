@@ -62,9 +62,7 @@ function initialize() {
                         content: results[1].formatted_address
                     });
                     infowindow.open(map, user_marker);
-                    setTimeout(function () {
-                        infowindow.close();
-                    }, '2000');
+                    setTimeout(function () { infowindow.close();}, '1000');
                 }
             }
         });
