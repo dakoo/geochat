@@ -4,27 +4,26 @@ var current_position = {
     longitude:-0.120850
 }
 var current_zoom_level = 16;
-var current_radius=300;
+var current_radius=300; // in meters
 
 function initialize() {
     var geocoder = new google.maps.Geocoder();
     var input = (document.getElementById('pac-input'));
 
     if(!navigator.geolocation){
-        drawMap(current_position.latitude, current_position.longitude);
+        drawMap();
     };
     function success(new_position){
-        drawMap(new_position.coords.latitude, new_position.coords.longitude);
+        updateUserPosition(new_position.coords.latitude, new_position.coords.longitude);
+        drawMap();
     };
     function error(){
-        drawMap(current_position.latitude, current_position.longitude);
+        drawMap();
     };
     navigator.geolocation.getCurrentPosition(success, error);
-    function drawMap(latitude, longitude) {
+    function drawMap() {
         /*center_position*/
-        current_position.latitude = latitude;
-        current_position.longitude = longitude;
-        var center = new google.maps.LatLng(latitude, longitude);
+        var center = new google.maps.LatLng(current_position.latitude, current_position.longitude);
 
         /* map */
         var mapOptions = {
@@ -37,22 +36,23 @@ function initialize() {
 
         var user_marker = new google.maps.Marker({
             position: center,
+            map:map,
             draggable: true,
             animation: google.maps.Animation.DROP
         });
-        user_marker.setMap(map);
 
         /*circle*/
         var circle = new google.maps.Circle({
             center: center,
+            map: map,
             radius: current_radius,
             strokeColor: "#FF565A",
             strokeOpacity: 0.3,
             strokeWeight: 1,
             fillColor: "#FFB89B",
-            fillOpacity: 0.2
+            fillOpacity: 0.2,
+            editable: true
         });
-        circle.setMap(map);
 
         /*infowindow for geocode*/
         geocoder.geocode({'location': center}, function (results, status) {
@@ -67,34 +67,59 @@ function initialize() {
             }
         });
 
-        /*marker event listener */
-        google.maps.event.addListener(user_marker, 'dragend', function () {
-            current_zoom_level = map.getZoom();
-            drawMap(user_marker.getPosition().lat(), user_marker.getPosition().lng());
-        });
-
-        /* place search */
+        /* place searchbox */
         var autocomplete = new google.maps.places.Autocomplete(input);
         map.controls[google.maps.ControlPosition.TOP_LEFT].push(input);
         autocomplete.bindTo('bounds', map);
         autocomplete.setTypes([]);
 
-        google.maps.event.addListener(autocomplete, 'place_changed', function () {
-            var place = autocomplete.getPlace();
-            if (!place.geometry) {
-                window.alert("We cann't find the place");
-                return;
-            }
-            if (place.geometry.location){
-                drawMap(place.geometry.location.lat(), place.geometry.location.lng());
-            } else if(place.geometry.viewport){
-                drawMap(place.geometry.viewport.getBounds().getCenter().lat(), place.geometry.viewport.getBounds().getCenter().lng());
-            } else {
-                window.alert("We cann't find the place");
-                return;
-            }
+        /*marker event listener */
+        google.maps.event.addListener(user_marker, 'dragend', function () {
+            updateUserPosition(user_marker.getPosition().lat(), user_marker.getPosition().lng());
+            drawMap();
+        });
+
+        /*boundary event listener*/
+        google.maps.event.addListener(circle, 'radius_changed', function () {
+             updateRadius(circle.getRadius());
+        });
+
+        /* searchbox event listener*/
+            google.maps.event.addListener(autocomplete, 'place_changed', function () {
+                var place = autocomplete.getPlace();
+                if (!place.geometry) {
+                    window.alert("We cann't find the place");
+                    return;
+                }
+                if (place.geometry.location){
+                    updateUserPosition(place.geometry.location.lat(), place.geometry.location.lng());
+                    drawMap();
+                } else if(place.geometry.viewport){
+                    updateUserPosition(place.geometry.viewport.getBounds().getCenter().lat(), place.geometry.viewport.getBounds().getCenter().lng());
+                    drawMap();
+                } else {
+                    window.alert("We cann't find the place");
+                    return;
+                }
+        });
+        /* zoom event listener */
+        google.maps.event.addListener(map, 'zoom_changed', function() {
+            updateZoomLevel(map.getZoom());
         });
     }; //end of drawmap
+
+    function updateUserPosition(latitude, longitude){
+        current_position.latitude = latitude;
+        current_position.longitude = longitude;
+        //TODO update user information of server
+    }
+    function updateRadius(radius){
+        current_radius = radius;
+        //TODO update user information of server
+    }
+    function updateZoomLevel(zoom_level){
+        current_zoom_level = zoom_level;
+    }
 }; //end of initialize
 
 google.maps.event.addDomListener(window, 'load', initialize);
