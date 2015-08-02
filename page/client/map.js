@@ -61,7 +61,7 @@ function initialize() {
             fillColor: "#FFB89B",
             fillOpacity: 0.2,
             editable: true,
-            draggable: true,
+            //draggable: true,
             bounds: new google.maps.LatLngBounds(
                 new google.maps.LatLng(current_boundary.y1, current_boundary.x1),
                 new google.maps.LatLng(current_boundary.y2, current_boundary.x2))
