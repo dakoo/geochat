@@ -2,9 +2,14 @@
 var current_position = {
     latitude: 51.508742,
     longitude:-0.120850
-}
+};
+var current_boundary = {
+    x1:-0.12445,
+    y1: 51.506,
+    x2:-0.11725,
+    y2: 51.5114
+};
 var current_zoom_level = 16;
-var current_radius=300; // in meters
 
 function initialize() {
     var geocoder = new google.maps.Geocoder();
@@ -14,7 +19,13 @@ function initialize() {
         drawMap();
     };
     function success(new_position){
-        updateUserPosition(new_position.coords.latitude, new_position.coords.longitude);
+        current_position.latitude = new_position.coords.latitude;
+        current_position.longitude = new_position.coords.longitude;
+        updateBoundary(
+            new_position.coords.longitude - 0.0036,
+            new_position.coords.latitude - 0.003,
+            new_position.coords.longitude + 0.0036,
+            new_position.coords.latitude + 0.003);
         drawMap();
     };
     function error(){
@@ -41,17 +52,19 @@ function initialize() {
             animation: google.maps.Animation.DROP
         });
 
-        /*circle*/
-        var circle = new google.maps.Circle({
-            center: center,
+        /*rectangle boundary*/
+        var rectangle = new google.maps.Rectangle({
             map: map,
-            radius: current_radius,
             strokeColor: "#FF565A",
             strokeOpacity: 0.3,
             strokeWeight: 1,
             fillColor: "#FFB89B",
             fillOpacity: 0.2,
-            editable: true
+            editable: true,
+            draggable: true,
+            bounds: new google.maps.LatLngBounds(
+                new google.maps.LatLng(current_boundary.y1, current_boundary.x1),
+                new google.maps.LatLng(current_boundary.y2, current_boundary.x2))
         });
 
         /*infowindow for geocode*/
@@ -80,27 +93,28 @@ function initialize() {
         });
 
         /*boundary event listener*/
-        google.maps.event.addListener(circle, 'radius_changed', function () {
-             updateRadius(circle.getRadius());
+        google.maps.event.addListener(rectangle, 'bounds_changed', function () {
+            updateBoundary(rectangle.getBounds().getSouthWest().lng(),rectangle.getBounds().getSouthWest().lat(),
+               rectangle.getBounds().getNorthEast().lng(), rectangle.getBounds().getNorthEast().lat());
         });
 
         /* searchbox event listener*/
-            google.maps.event.addListener(autocomplete, 'place_changed', function () {
-                var place = autocomplete.getPlace();
-                if (!place.geometry) {
-                    window.alert("We cann't find the place");
-                    return;
-                }
-                if (place.geometry.location){
-                    updateUserPosition(place.geometry.location.lat(), place.geometry.location.lng());
-                    drawMap();
-                } else if(place.geometry.viewport){
-                    updateUserPosition(place.geometry.viewport.getBounds().getCenter().lat(), place.geometry.viewport.getBounds().getCenter().lng());
-                    drawMap();
-                } else {
-                    window.alert("We cann't find the place");
-                    return;
-                }
+        google.maps.event.addListener(autocomplete, 'place_changed', function () {
+            var place = autocomplete.getPlace();
+            if (!place.geometry) {
+                window.alert("We cann't find the place");
+                return;
+            }
+            if (place.geometry.location){
+                updateUserPosition(place.geometry.location.lat(), place.geometry.location.lng());
+                drawMap();
+            } else if(place.geometry.viewport){
+                updateUserPosition(place.geometry.viewport.getBounds().getCenter().lat(), place.geometry.viewport.getBounds().getCenter().lng());
+                drawMap();
+            } else {
+                window.alert("We cann't find the place");
+                return;
+            }
         });
         /* zoom event listener */
         google.maps.event.addListener(map, 'zoom_changed', function() {
@@ -109,12 +123,23 @@ function initialize() {
     }; //end of drawmap
 
     function updateUserPosition(latitude, longitude){
+        var dx1 = current_position.longitude - current_boundary.x1;
+        var dy1 = current_position.latitude - current_boundary.y1;
+        var dx2 = current_position.longitude - current_boundary.x2;
+        var dy2 = current_position.latitude - current_boundary.y2;
+        /* update position */
         current_position.latitude = latitude;
         current_position.longitude = longitude;
+        /* update boundary */
+        updateBoundary(current_position.longitude - dx1,current_position.latitude - dy1,
+            current_position.longitude - dx2, current_position.latitude - dy2);
         //TODO update user information of server
     }
-    function updateRadius(radius){
-        current_radius = radius;
+    function updateBoundary(x1, y1,x2, y2){
+        current_boundary.x1 = x1;
+        current_boundary.y1 = y1;
+        current_boundary.x2 = x2;
+        current_boundary.y2 = y2;
         //TODO update user information of server
     }
     function updateZoomLevel(zoom_level){
