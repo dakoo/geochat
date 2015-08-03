@@ -49,6 +49,7 @@ function initialize() {
             position: center,
             map:map,
             draggable: true,
+            icon: 'me.png',
             animation: google.maps.Animation.DROP
         });
 
